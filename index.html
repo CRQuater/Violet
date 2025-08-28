@@ -1,152 +1,266 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!doctype html>
+<html lang="en">
 <head>
-<title>Violet-chwannnn :D</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>S3 EPUB Reader</title>
+  <!-- AWS SDK for JavaScript v2 (browser build) -->
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1480.0.min.js"></script>
+  <!-- ePub.js (client-side EPUB renderer) -->
+  <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3/dist/epub.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #141b2d;
+      --text: #e6e9f0;
+      --muted: #9aa3b2;
+      --accent: #4aa3ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    header { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; background: var(--panel); border-bottom: 1px solid #222a40; position: sticky; top: 0; z-index: 10; }
+    header h1 { font-size: 1rem; font-weight: 600; margin: 0 .5rem 0 0; letter-spacing: .3px; }
+    .config { display: grid; grid-template-columns: repeat(4,minmax(160px,1fr)) auto; gap: .5rem; width: 100%; }
+    .config input { background: #0e1426; border: 1px solid #22304d; color: var(--text); padding: .45rem .6rem; border-radius: .5rem; font-size: .9rem; }
+    .config button { background: var(--accent); border: 0; color: #041021; padding: .5rem .8rem; border-radius: .5rem; font-weight: 700; cursor: pointer; }
+
+    main { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 62px); }
+    aside { background: var(--panel); border-right: 1px solid #222a40; overflow: auto; }
+    .listHdr { padding: .75rem 1rem; font-size: .9rem; color: var(--muted); border-bottom: 1px solid #222a40; display: flex; align-items: center; gap: .5rem; }
+    #books { list-style: none; margin: 0; padding: .25rem; }
+    #books li { margin: .25rem; }
+    #books button { width: 100%; text-align: left; padding: .6rem .7rem; border-radius: .5rem; border: 1px solid #22304d; background: #0e1426; color: var(--text); cursor: pointer; }
+    #books button:hover { border-color: var(--accent); }
+
+    #viewerWrap { position: relative; background: #0a0f1d; }
+    #viewer { position: absolute; inset: 56px 0 0 0; }
+    .toolbar { position: absolute; top: 0; left: 0; right: 0; height: 56px; border-bottom: 1px solid #222a40; display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; background: linear-gradient(180deg, rgba(10,15,29,.9), rgba(10,15,29,.6)); backdrop-filter: blur(6px); }
+    .toolbar button, .toolbar select { background: #13203a; color: var(--text); border: 1px solid #22304d; border-radius: .45rem; padding: .45rem .6rem; cursor: pointer; }
+    .toolbar input[type="range"] { width: 120px; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .note { padding: .75rem 1rem; color: var(--muted); font-size: .85rem; border-top: 1px dashed #22304d; }
+
+    @media (max-width: 980px) {
+      main { grid-template-columns: 1fr; }
+      aside { height: 40vh; }
+      #viewer { position: absolute; inset: 96px 0 0 0; }
+    }
+  </style>
 </head>
-
-<style>
-	body{
-	  background: url("./background.jpg");
-	  background-repeat: no-repeat;
-	  background-attachment: fixed;
-	  background-size: cover;
-	}
-	
-	#title{
-	  font-family: Slab;
-	  font-size: 2.5em;
-	  text-align: center;
-	  display: block;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	#support{
-	  font-family: sans-serif;
-	  font-size: 2.3em;
-	  text-align: center;
-	  display: block;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	#ahihi{
-	  font-size: 1.6em;
-	}
-	blockquote{
-	  font-style: italic;
-	  font-size: 2.5em;
-	}
-	h3{
-	  font-size: 2em;
-	  color: ;
-	  background-color: cyan;
-	}
-	#fig{
-	  font-size: 1.5em;
-	  color: blue;
-	  background-color: yellow;
-	  max-width: 800px;
-	  text-align: center;
-	  display: block;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	#pic ,#image{
-	  max-width: 800px;
-	  display: block;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	#img-caption ,#tribute-info{
-	  font-size: 1.5em;
-	  color: blue;
-	  background-color: yellow;
-	  max-width: 800px;
-	  text-align: center;
-	  display: block;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	@media (min-width: 1000px){
-	  body{
-		background-repeat: repeat-x;
-	  }
-	}
-</style>
-
 <body>
-    <main id="main">
-      <h1 id="title">Violet Evergarden-the girl in my dream :V uwu</h1>
-      <p id="support">The girl who makes me cries =((</p>
-      <div id="img-div">
-        <img id="image" src=https://i0.wp.com/www.violet-evergarden.jp/img/top/keyvisual.jpg?w=1170>
-        <figcaption id="img-caption">
-          This is a new poster about her brand new movie which is going to be live on 24-4-2020
-        </figcaption>
+  <header>
+    <h1>📚 S3 EPUB Reader</h1>
+    <div class="config">
+      <input id="region" placeholder="AWS Region (e.g. ap-southeast-1)" />
+      <input id="identityPoolId" placeholder="Cognito Identity Pool ID (e.g. ap-southeast-1:xxxx-xxxx)" />
+      <input id="bucket" placeholder="S3 Bucket (e.g. my-epub-bucket)" />
+      <input id="prefix" placeholder="Prefix (e.g. novels/)" />
+      <button id="connectBtn">Connect & List</button>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="listHdr">Available EPUBs in <span id="prefixShow" class="muted"></span></div>
+      <ul id="books"></ul>
+      <div class="note">
+        <div>Tips:</div>
+        <ul>
+          <li>Use a <b>Cognito Identity Pool</b> (unauth role) that can <code>s3:ListBucket</code> for your prefix and <code>s3:GetObject</code> on EPUB files.</li>
+          <li>Ensure your S3 bucket CORS allows <code>GET</code>/<code>HEAD</code> from this domain.</li>
+        </ul>
       </div>
-      <p id="tribute-info">
-        U think her is beautiful :V Right ??? let's see more picture about her
-      </p>
-      <figure id="nice-picture">
-        <img id="pic" src="https://i.ytimg.com/vi/kUzFcuQjSHM/maxresdefault.jpg">
-        <figcaption id="fig">
-          when she wake up after a long time
-        </figcaption>
-        <br><br><br>
-        <img id="pic" src="https://zingtv-photo.zadn.vn/tv_media_854_480/9/3/93ac24fc598fbb766c8a4800126f92e5_1516255863.jpg">
-        <figcaption id="fig">
-          her hobby after back to reality
-        </figcaption>
-        <br><br><br>
-        <img id="pic" src="https://scontent-hkg3-1.xx.fbcdn.net/v/t31.0-8/27356090_558827177811243_7219393002457373019_o.jpg?_nc_cat=108&_nc_sid=8024bb&_nc_ohc=KtI9PazOemQAX_l2CJX&_nc_ht=scontent-hkg3-1.xx&oh=8eca3df96d77ed4f909a77ff9f4d3a7f&oe=5EAD7080">
-        <figcaption id="fig">
-          her first friend and learning how to be a Auto Memories Doll
-        </figcaption>
-        <br><br><br>
-        
-        <img id="pic" src="https://photo-2-baomoi.zadn.vn/w1000_r1/2019_11_02_329_32795734/aa5e858377c39e9dc7d2.jpg">
-        <figcaption id="fig">
-          Viên đá này đẹp như đôi mắt của thiếu tá vậy. Do em không biết nói nhưng đôi mắt của thiếu tá đã đẹp ngay từ lần đầu ta gặp nhau :vv
-        </figcaption>
-        <br><br><br>
-        
-        <img id="pic" src="https://scontent-hkg3-1.xx.fbcdn.net/v/t1.0-9/28166603_572108859816408_5195742683205233428_n.jpg?_nc_cat=106&_nc_sid=8024bb&_nc_ohc=P7RpGXktiC4AX_0hguY&_nc_ht=scontent-hkg3-1.xx&oh=e0dcc02d5fea0d291560a84aa2bba7c5&oe=5EAF6BF8">
-        <figcaption id="fig">
-          Có thể chưa sang được bờ bên kia nhưng tôi chắc tôi đã đi được ba bước đó 
-        </figcaption>
-        <br><br><br>
-        
-        <img id="pic" src="https://scontent-hkg3-1.xx.fbcdn.net/v/t1.0-9/89436000_1098124657214823_4625197577518710784_n.jpg?_nc_cat=100&_nc_sid=110474&_nc_ohc=ctuT0Vh9FBQAX8a6Mki&_nc_ht=scontent-hkg3-1.xx&oh=13785a31166fec05bfd0299f2efa2a97&oe=5EAEE370">
-        <figcaption id="fig">
-          when she try to smile :vv so cuteee uwuw 
-        </figcaption>
-        <br><br><br>
-        
-        <img id="pic" src="https://i2.wp.com/takoyaki.asia/wp-content/uploads/2019/10/ea5660a59aff4e43cf94b8a5aeffa2321567664798_full-e1571636718898.jpg?fit=566%2C284">
-        <figcaption id="fig">
-          Her OVA movie gaiden SO awesomeeeee :D
-        </figcaption>
-        <br><br><br>
-      </figure>
-    
-       <img id="pic" src="https://i.pinimg.com/originals/78/23/29/7823295ab79074fd41c5d4cc92923cfa.png">
-        <figcaption id="fig">
-          And finally :V Cho-san so handsomeeee :D dành cho các bạn nữ nè KEKW :v
-        </figcaption>
-        <br><br><br>
-      </figure>
-    
-    
-      <p id="ahihi">
-        Và câu nói huyền thoại của Violet :D<br>
-      </p>
-      <blockquote>
-        <p>"Chỉ cần quý khách mong muốn, tôi sẽ đến bên người dù bất cứ mọi nơi, tôi là một Auto Memories Doll, Violet Evergarden"
-        </p>
-      </blockquote>
-    
-      <h3>
-        If you have time, you should read more about <a id="tribute-link" target="_blank" href="https://dennou-translations.tumblr.com/post/159331691639/violet-evergarden-novel-index?fbclid=IwAR0Jl-ds9sCCTdUIo5BEPoykG57VHL8gmFtZr1amAOJylusbW_SNugqD0Ug" >light novel </a> 
-        and watch her anime especially <a id="tribute-link" href="https://tv.zing.vn/video/Bup-Be-Ky-Uc-Violet-Evergarden-Tap-10/IWZEIAID.html" target="_blank">episode 10 </a> which had made lots of people cry =(( 
-    </main>
+    </aside>
+
+    <section id="viewerWrap">
+      <div class="toolbar">
+        <button id="prevBtn">← Prev</button>
+        <button id="nextBtn">Next →</button>
+        <label class="muted">Font: <input id="fontSlider" type="range" min="80" max="160" value="100" /></label>
+        <select id="theme">
+          <option value="dark" selected>Dark</option>
+          <option value="sepia">Sepia</option>
+          <option value="light">Light</option>
+        </select>
+        <button id="tocBtn">TOC</button>
+        <span id="status" class="muted" style="margin-left:auto"></span>
+      </div>
+      <div id="viewer"></div>
+    </section>
+  </main>
+
+  <script>
+    // ====== Minimal state ======
+    let s3 = null;
+    let currentBook = null;
+    let rendition = null;
+
+    const els = {
+      region: document.getElementById('region'),
+      identityPoolId: document.getElementById('identityPoolId'),
+      bucket: document.getElementById('bucket'),
+      prefix: document.getElementById('prefix'),
+      connectBtn: document.getElementById('connectBtn'),
+      books: document.getElementById('books'),
+      prefixShow: document.getElementById('prefixShow'),
+      viewer: document.getElementById('viewer'),
+      status: document.getElementById('status'),
+      prev: document.getElementById('prevBtn'),
+      next: document.getElementById('nextBtn'),
+      fontSlider: document.getElementById('fontSlider'),
+      theme: document.getElementById('theme'),
+      tocBtn: document.getElementById('tocBtn')
+    };
+
+    // Prefill from localStorage for convenience
+    ['region','identityPoolId','bucket','prefix'].forEach(k => {
+      const v = localStorage.getItem('s3epub.'+k);
+      if (v) els[k].value = v;
+    });
+
+    function setStatus(msg) { els.status.textContent = msg || ''; }
+
+    // ====== AWS init & listing ======
+    async function connectAndList() {
+      const region = els.region.value.trim();
+      const identityPoolId = els.identityPoolId.value.trim();
+      const bucket = els.bucket.value.trim();
+      const prefix = els.prefix.value.trim();
+      if (!region || !identityPoolId || !bucket) {
+        alert('Please fill Region, Identity Pool ID, and Bucket. Prefix is optional.');
+        return;
+      }
+
+      // persist
+      localStorage.setItem('s3epub.region', region);
+      localStorage.setItem('s3epub.identityPoolId', identityPoolId);
+      localStorage.setItem('s3epub.bucket', bucket);
+      localStorage.setItem('s3epub.prefix', prefix);
+
+      setStatus('Connecting…');
+      AWS.config.region = region;
+      AWS.config.credentials = new AWS.CognitoIdentityCredentials({ IdentityPoolId: identityPoolId });
+
+      await new Promise((resolve, reject) => {
+        AWS.config.credentials.get(err => err ? reject(err) : resolve());
+      });
+
+      s3 = new AWS.S3({ apiVersion: '2006-03-01', params: { Bucket: bucket } });
+      setStatus('Listing…');
+      els.prefixShow.textContent = prefix ? ('s3://' + bucket + '/' + prefix) : ('s3://' + bucket);
+
+      const keys = await listAllEPUBs(bucket, prefix);
+      renderList(keys);
+      setStatus(keys.length ? `Found ${keys.length} file(s)` : 'No EPUBs found');
+    }
+
+    async function listAllEPUBs(bucket, prefix) {
+      const all = [];
+      let ContinuationToken = undefined;
+      do {
+        const params = { Bucket: bucket, Prefix: prefix || undefined, ContinuationToken };
+        const res = await s3.listObjectsV2(params).promise();
+        (res.Contents || []).forEach(o => { if (/\.epub$/i.test(o.Key)) all.push(o.Key); });
+        ContinuationToken = res.IsTruncated ? res.NextContinuationToken : undefined;
+      } while (ContinuationToken);
+      return all.sort((a,b) => a.localeCompare(b));
+    }
+
+    function renderList(keys) {
+      els.books.innerHTML = '';
+      keys.forEach(key => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.textContent = key.replace(els.prefix.value, '').replace(/^\//,'');
+        btn.title = key;
+        btn.onclick = () => openKey(key);
+        li.appendChild(btn);
+        els.books.appendChild(li);
+      });
+    }
+
+    async function openKey(key) {
+      if (!s3) return alert('Not connected to S3 yet.');
+      const bucket = els.bucket.value.trim();
+      setStatus('Signing URL…');
+      const url = s3.getSignedUrl('getObject', { Bucket: bucket, Key: key, Expires: 3600 });
+      await openBook(url);
+      setStatus('');
+      // update URL hash for deep-link
+      location.hash = encodeURIComponent(key);
+    }
+
+    // ====== EPUB viewer ======
+    async function openBook(url) {
+      try {
+        // Destroy previous book if any
+        if (rendition) { try { rendition.destroy(); } catch (_) {} }
+        if (currentBook) { try { currentBook.destroy(); } catch (_) {} }
+
+        currentBook = ePub(url);
+        rendition = currentBook.renderTo('viewer', {
+          width: '100%',
+          height: '100%',
+          spread: 'auto',
+          minSpreadWidth: 800
+        });
+        applyTheme(els.theme.value);
+        applyFontSize(+els.fontSlider.value);
+        await rendition.display();
+
+        // Keyboard nav
+        document.onkeydown = (e) => {
+          if (e.key === 'ArrowLeft') rendition.prev();
+          if (e.key === 'ArrowRight') rendition.next();
+        };
+
+        // Optional: load TOC for quick jumps
+        els.tocBtn.onclick = async () => {
+          const nav = await currentBook.loaded.navigation;
+          const items = nav.toc || [];
+          const choice = prompt('Go to chapter (enter number)\n' + items.map((c,i)=>`${i+1}. ${c.label}`).join('\n'));
+          const idx = Number(choice) - 1;
+          if (!isNaN(idx) && items[idx]) rendition.display(items[idx].href);
+        };
+
+      } catch (err) {
+        console.error(err);
+        alert('Failed to open book: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    function applyTheme(name) {
+      if (!rendition) return;
+      const themes = {
+        dark: { 'body': { 'background': '#0a0f1d', 'color': '#e6e9f0' } },
+        sepia: { 'body': { 'background': '#fbf0d9', 'color': '#5b4636' } },
+        light: { 'body': { 'background': '#ffffff', 'color': '#111' } }
+      };
+      // Register and select
+      Object.entries(themes).forEach(([k, css]) => rendition.themes.register(k, css));
+      rendition.themes.select(name);
+    }
+    function applyFontSize(pct) {
+      if (!rendition) return;
+      rendition.themes.fontSize(pct + '%');
+    }
+
+    // Controls
+    els.connectBtn.onclick = () => connectAndList().catch(err => {
+      console.error(err);
+      alert('AWS connect/list error: ' + (err && err.message ? err.message : err));
+      setStatus('');
+    });
+    els.prev.onclick = () => rendition && rendition.prev();
+    els.next.onclick = () => rendition && rendition.next();
+    els.fontSlider.oninput = () => applyFontSize(+els.fontSlider.value);
+    els.theme.onchange = () => applyTheme(els.theme.value);
+
+    // Deep-link: if hash has a key, try opening after connect
+    window.addEventListener('hashchange', () => {
+      const key = decodeURIComponent(location.hash.slice(1));
+      if (key) openKey(key);
+    });
+  </script>
 </body>
 </html>
