@@ -8,6 +8,10 @@
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1480.0.min.js"></script>
   <!-- ePub.js (client-side EPUB renderer) -->
   <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3/dist/epub.min.js"></script>
+  <!-- JSZip is required by epub.js 0.3.x -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <!-- ePub.js (0.3.x) -->
   <script src="https://unpkg.com/epubjs@0.3.93/dist/epub.min.js"></script>
   <style>
     :root {
@@ -183,50 +187,82 @@
       });
     }
 
-	function withTimeout(promise, ms, label) {
-	  let t; return Promise.race([
-		promise,
-		new Promise((_, rej) => t = setTimeout(() => rej(new Error(label + ' timeout after ' + ms + 'ms')), ms))
-	  ]).finally(() => clearTimeout(t));
-	}
+	// Helper: fetch with timeout
+	const withTimeout = (p, ms, label) =>
+	  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout after ${ms}ms`)), ms))]);
 
 	s3 = new AWS.S3({ apiVersion: '2006-03-01', region: AWS.config.region });
 
+	// --- If you're using Cognito + AWS.S3 client (s3.getSignedUrl) ---
 	async function openKey(key) {
 	  if (!s3) return alert('Not connected to S3 yet.');
 	  const bucket = els.bucket.value.trim();
 
 	  try {
 		setStatus('Signing URL…');
-		// Short-lived signed URL using your Cognito creds
 		const url = s3.getSignedUrl('getObject', { Bucket: bucket, Key: key, Expires: 300 });
 
 		setStatus('Fetching…');
-
-		// Helper: fetch with a hard timeout so it can't spin forever
-		const withTimeout = (p, ms, label) =>
-		  Promise.race([
-			p,
-			new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout after ${ms}ms`)), ms))
-		  ]);
-
-		const res = await withTimeout(fetch(url, { cache: 'no-store', mode: 'cors' }), 30000, 'GET epub');
-		if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-
+		const res = await withTimeout(fetch(url, { mode: 'cors', cache: 'no-store' }), 30000, 'GET epub');
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 		const blob = await res.blob();
-		const blobUrl = URL.createObjectURL(blob);
 
-		await openBook(blobUrl);
+		setStatus('Opening…');
+		await openBookFromBlob(blob);
+
 		setStatus('');
 		location.hash = encodeURIComponent(key);
-
-		// (Optional) revoke later to free memory
-		// setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
 	  } catch (err) {
 		console.error(err);
 		setStatus('');
 		alert('Failed to open book: ' + (err?.message || err));
 	  }
+	}
+
+	// --- If you're using the presign API (/url?key=...) I gave earlier ---
+	// async function openKey(key) {
+	//   const apiBase = els.apiBase.value.trim().replace(/\/$/, '');
+	//   setStatus('Signing URL…');
+	//   const r = await fetch(`${apiBase}/url?key=${encodeURIComponent(key)}`);
+	//   if (!r.ok) throw new Error(`Sign failed ${r.status}`);
+	//   const { url } = await r.json();
+	//   setStatus('Fetching…');
+	//   const res = await fetch(url, { mode: 'cors', cache: 'no-store' });
+	//   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	//   const blob = await res.blob();
+	//   setStatus('Opening…');
+	//   await openBookFromBlob(blob);
+	//   setStatus('');
+	//   location.hash = encodeURIComponent(key);
+	// }
+
+	async function openBookFromBlob(blob) {
+	  // Clean up previous
+	  try { rendition && rendition.destroy(); } catch {}
+	  try { currentBook && currentBook.destroy(); } catch {}
+	  rendition = null; currentBook = null;
+
+	  // Force binary open so ePub.js unzips the file (prevents /META-INF HTTP 404)
+	  const ab = await blob.arrayBuffer();
+	  currentBook = ePub({ worker: 'https://unpkg.com/epubjs@0.3.93/dist/epub.worker.min.js' });
+	  await currentBook.open(ab, 'binary');
+
+	  rendition = currentBook.renderTo('viewer', {
+		width: '100%', height: '100%', spread: 'auto', minSpreadWidth: 800
+	  });
+	  applyTheme(els.theme.value);
+	  applyFontSize(+els.fontSlider.value);
+	  await rendition.display();
+
+	  // Keyboard + TOC (keep your existing code)
+	  document.onkeydown = (e) => { if (e.key === 'ArrowLeft') rendition.prev(); if (e.key === 'ArrowRight') rendition.next(); };
+	  els.tocBtn.onclick = async () => {
+		const nav = await currentBook.loaded.navigation;
+		const items = nav.toc || [];
+		const choice = prompt('Go to chapter (enter number)\n' + items.map((c,i)=>`${i+1}. ${c.label}`).join('\n'));
+		const idx = Number(choice) - 1;
+		if (!isNaN(idx) && items[idx]) rendition.display(items[idx].href);
+	  };
 	}
 
     // ====== EPUB viewer ======
